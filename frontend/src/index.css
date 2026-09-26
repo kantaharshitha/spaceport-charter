@@ -1,0 +1,139 @@
+:root {
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --text: #1c2233;
+  --muted: #6b7280;
+  --border: #e3e6ee;
+  --accent: #3b5bdb;
+  --accent-text: #ffffff;
+
+  --available: #e6f4ea;
+  --available-border: #9fd3ad;
+  --booked: #fde2e1;
+  --booked-text: #9b2c2c;
+  --refueling: #fff3cd;
+  --refueling-text: #8a6d00;
+  --past: #eef0f4;
+  --past-text: #a0a6b2;
+
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+h1 { font-size: 1.6rem; margin: 0 0 1rem; }
+.muted { color: var(--muted); }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #111827;
+  color: #fff;
+}
+.brand { font-weight: 700; }
+.topbar nav { display: flex; gap: 0.5rem; }
+.topbar a {
+  color: #cbd5e1;
+  text-decoration: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+}
+.topbar a.active { background: #374151; color: #fff; }
+
+.container { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; margin-bottom: 1rem; }
+label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; }
+input, select {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  min-width: 12rem;
+}
+.hint { font-size: 0.9rem; color: var(--muted); margin: 0 0 0.75rem; }
+
+/* Slots */
+.legend { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.8rem; }
+.legend-item { padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); }
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+.slot-grid.is-loading { opacity: 0.5; }
+.slot {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.55rem 0.25rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+.slot:disabled { cursor: not-allowed; }
+.slot-available { background: var(--available); border-color: var(--available-border); cursor: pointer; }
+.slot-available:hover { filter: brightness(0.95); }
+.slot-booked { background: var(--booked); color: var(--booked-text); }
+.slot-refueling { background: var(--refueling); color: var(--refueling-text); }
+.slot-past { background: var(--past); color: var(--past-text); }
+.slot-selected { background: var(--accent); color: var(--accent-text); border-color: var(--accent); cursor: pointer; }
+
+.booking-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.selection-summary { flex: 1 1 100%; }
+button.primary {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.55rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+button.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.message { padding: 0.75rem 1rem; border-radius: 6px; margin-top: 1rem; }
+.message-success { background: var(--available); }
+.message-error { background: var(--booked); color: var(--booked-text); }
+
+/* Manager dashboard */
+.summary-count { padding-bottom: 0.5rem; }
+.fleet { display: flex; flex-direction: column; gap: 0.75rem; }
+.ship-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+.ship-card summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+.badge { background: var(--past); border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.8rem; }
+.empty { padding: 0 1rem 1rem; margin: 0; }
+.ship-card table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.ship-card th, .ship-card td { text-align: left; padding: 0.5rem 1rem; border-top: 1px solid var(--border); }
+.ship-card th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
+
+@media (max-width: 600px) {
+  .ship-card th:nth-child(3), .ship-card td:nth-child(3) { display: none; }
+  input, select { min-width: 0; width: 100%; }
+  .controls label { flex: 1 1 100%; }
+}
