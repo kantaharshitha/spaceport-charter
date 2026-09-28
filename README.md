@@ -171,12 +171,3 @@ I used Claude Code as a pair-programming tool during development. It helped acce
 I owned the overall solution and made the key implementation decisions, including selecting PostgreSQL, structuring the backend and frontend, defining the booking and availability flow, and implementing the 30-minute refueling rule. I reviewed and modified the generated code throughout development rather than using it as-is, and worked through technical issues such as PostgreSQL range constraints and timezone-aware booking logic.
 
 I also tested the application end-to-end, validated booking conflicts and edge cases, refined the UI and user flow, and reviewed the final codebase to ensure I understood and could explain each part of the implementation. AI was useful for speeding up development and discussing alternatives, while the final design decisions, validation, and project ownership remained mine.
-
-## What I'd do next
-
-- Add migrations (Alembic) instead of recreating tables
-- Let the fleet manager cancel or edit bookings
-- Keep the refueling time in one place only
-- Add pagination or a calendar view on the Fleet Manager
-- Add some frontend tests for the slot selection
-- Put the whole app in Docker Compose so it starts with one command
