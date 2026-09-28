@@ -3,11 +3,114 @@
 A booking app for the Pacific Spaceport's charter fleet. It has two screens:
 
 - **Charter a Ship** – pick a ship and a date, see what's free, and book a time.
-- **Fleet Manager** – see bookings for every ship, grouped by ship.
+- **Fleet Manager** – see bookings for every ship in a date range (the next 7 days by default), grouped by ship. Click a ship to open its list.
 
 The original brief is in [ASSIGNMENT.md](ASSIGNMENT.md).
 
 **Stack:** React + Vite on the frontend, FastAPI + SQLAlchemy on the backend, PostgreSQL in Docker for the database, and pytest for tests.
+
+## Architecture
+
+There are three parts: the React app in the browser, the FastAPI backend, and PostgreSQL. The frontend only displays things and sends requests, the backend checks the rules, and the database has the final say on overlapping bookings.
+
+```mermaid
+flowchart LR
+    subgraph FE["Frontend: React + Vite (localhost:5173)"]
+        CP["CharterPage.jsx<br/>pick ship and date,<br/>select slots, book"]
+        MP["ManagerPage.jsx<br/>bookings grouped by ship"]
+        APIJS["api.js<br/>all calls to the backend"]
+        TIME["time.js<br/>shows times in Central"]
+        CP --> APIJS
+        MP --> APIJS
+        CP -.-> TIME
+        MP -.-> TIME
+    end
+
+    subgraph BE["Backend: FastAPI (localhost:8000)"]
+        MAIN["main.py<br/>routes and HTTP errors"]
+        SCHEMAS["schemas.py<br/>checks request shape,<br/>camelCase JSON"]
+        RULES["rules.py<br/>operating hours, no past bookings,<br/>30-minute slots"]
+        ORM["models.py + db.py<br/>SQLAlchemy models<br/>and DB sessions"]
+        MAIN --> SCHEMAS
+        MAIN --> RULES
+        MAIN --> ORM
+    end
+
+    subgraph PG["PostgreSQL 16 in Docker (localhost:5432)"]
+        SHIPS[("ships")]
+        BOOKINGS[("bookings<br/>exclusion constraint:<br/>no overlaps, 30-min refuel gap")]
+    end
+
+    APIJS -- "JSON over HTTP" --> MAIN
+    ORM -- "SQL via psycopg" --> SHIPS
+    ORM -- "SQL via psycopg" --> BOOKINGS
+    SEED["seed.py + seed_db.py"] -. "loads starting data" .-> PG
+```
+
+### What happens when someone books
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as CharterPage (React)
+    participant API as FastAPI
+    participant Rules as rules.py
+    participant DB as PostgreSQL
+
+    User->>UI: Pick a ship and date
+    UI->>API: GET /ships/1/availability?date=2026-09-27
+    API->>DB: Load bookings near that day
+    DB-->>API: Bookings
+    API->>Rules: day_slots()
+    Rules-->>API: 32 slots with a status each
+    API-->>UI: Slots (times in UTC)
+    UI-->>User: Colored grid in Central Time
+
+    User->>UI: Select green slots, enter pilot name, click Book
+    UI->>API: POST /bookings
+    Note over API: Pydantic checks the request (422 if invalid)<br/>Ship must exist (404 if not)
+    API->>Rules: validate_booking_times()
+    Note over Rules: 422 if outside 6 AM to 10 PM Central or in the past
+    API->>DB: INSERT booking
+    alt No clash
+        DB-->>API: Saved
+        API-->>UI: 201 Created
+    else Overlaps another booking or its refuel gap
+        DB-->>API: Exclusion constraint violation
+        API-->>UI: 409 Conflict
+    end
+    UI->>API: Reload availability so the grid is up to date
+```
+
+### Where each rule is checked
+
+| Rule | Checked in | Response if broken |
+|---|---|---|
+| Request has the right fields, a pilot name, and times with a timezone | `schemas.py` | 422 |
+| Ship exists | `main.py` | 404 |
+| Ends after it starts, not in the past, within 6 AM–10 PM Central | `rules.py` | 422 |
+| No overlap with another booking on the same ship, 30-minute refuel gap | Postgres exclusion constraint (`models.py`) | 409 |
+
+### Project layout
+
+```
+├── docker-compose.yml      Postgres 16
+├── seed.py                 seed data generator from the brief
+├── backend/
+│   ├── app/
+│   │   ├── main.py         API routes
+│   │   ├── schemas.py      request and response models
+│   │   ├── rules.py        booking rules and slot building
+│   │   ├── models.py       tables and the exclusion constraint
+│   │   └── db.py           database connection
+│   ├── seed_db.py          loads the seed data
+│   └── tests/              rule tests and API tests
+└── frontend/src/
+    ├── App.jsx             navigation and routes
+    ├── api.js              calls to the backend
+    ├── time.js             Central Time formatting
+    └── pages/              CharterPage.jsx, ManagerPage.jsx
+```
 
 ## How to run it
 
