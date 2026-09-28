@@ -164,34 +164,6 @@ The tests use their own `spaceport_test` database, so they won't touch your data
 
 When booking, you get back `201` if it worked, `404` if the ship doesn't exist, `422` if the request breaks a rule (outside hours, in the past, no timezone, and so on) and `409` if the time clashes with another booking.
 
-## Decisions I made
-
-**Overlaps and the refueling gap are enforced by the database.**
-I went with Postgres mainly for this. The `bookings` table has an exclusion constraint that says no two bookings for the same ship can overlap, where each booking counts as running from its start to 30 minutes after its end. That one rule covers both "no overlaps" and "30 minutes of refueling". A booking can start exactly 30 minutes after the previous one ends, but not 29.
-
-I didn't want to check for overlaps in Python first and then insert, because two people booking at the same moment could both pass the check. With the constraint, Postgres only lets one of them through. There's a test that fires five identical requests at once and checks exactly one succeeds.
-
-One thing I ran into: Postgres wouldn't accept `end_time + interval '30 minutes'` directly in the constraint. It said index expressions must be `IMMUTABLE`, because adding an interval to a timestamp can depend on time zone settings (think of adding "1 day" over a daylight-saving change). Adding 30 minutes is always the same length of time, so I put it in a small SQL function, `booking_block`, and marked that as `IMMUTABLE`.
-
-**Operating hours are checked in Python.**
-The hours check lives in `backend/app/rules.py`, along with the rule that you can't book in the past. I kept that file free of FastAPI and database code so the rules are easy to test on their own.
-
-**Times are stored in UTC and shown in Central.**
-The database stores exact moments (`timestamptz`). When checking hours, I work out 6 AM and 10 PM Central for that specific date with `zoneinfo`, so it stays correct when daylight saving starts or ends. The API also rejects times without a timezone, since "10:00" on its own is ambiguous. The frontend shows everything in Central Time no matter where the user is.
-
-**The backend works out availability, as 30-minute slots.**
-The brief says unavailable times should come from the backend, so the booking screen asks `/availability` for one ship and one day. The server loads only the bookings near that day and marks each half-hour slot. A slot is only "available" if booking it wouldn't break the refueling gap, so any run of green slots next to each other is a valid booking. That means the frontend doesn't need to know the rules at all. I picked 30 minutes because it matches the refueling time and all the seed data is on the hour or half hour.
-
-**Why FastAPI and Postgres.**
-The backend is just a few JSON endpoints, so Django felt like more than I needed. FastAPI's request validation and the auto-generated `/docs` page were useful. I chose Postgres over SQLite because of the exclusion constraint, and Docker keeps it to one command to start.
-
-## Things to know
-
-- The seed data only goes up to around May 2026. `seed.py` stops after 600 bookings per ship, so dates after that start out empty. On the Fleet Manager, pick dates in May 2026 to see the seed bookings.
-- The 30-minute refueling time is written in two places: `rules.py` (for showing slots) and the `booking_block` SQL function (for enforcing it). If it changes, both need updating.
-- The API will accept times like 10:10, even though the screen only books in half hours. The rules still apply, it just makes the slot grid look a bit odd.
-- Tables are created straight from the models rather than with migrations.
-
 ## How I used AI
 
 I used Claude Code as a pair-programming tool during development. It helped accelerate project setup, generate initial implementations for some components, explore technical approaches, and troubleshoot issues as they came up.
